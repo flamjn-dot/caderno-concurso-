@@ -4,6 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#07111f">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Caderno">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
   <title>Caderno de Concurso</title>
   <style>
     :root{--bg:#07111f;--panel:#0b1829;--panel2:#102137;--line:#1c3552;--text:#e8f0fb;--muted:#8ea3bc;--blue:#4f9cf9;--blue2:#1e64b6;--danger:#ff6b78;--gold:#f4bf54;--shadow:0 16px 40px #0007;--radius:16px}
@@ -33,6 +40,7 @@
         <div class="auth-actions"><button class="btn primary" type="submit">Entrar</button><button class="btn" type="button" id="createAccountBtn">Criar conta</button></div>
         <p class="auth-message" id="authMessage"></p>
       </form>
+      <button class="btn primary install-app-btn hidden" type="button" style="width:100%;margin-top:12px">⬇ Instalar aplicativo</button>
     </div>
   </section>
 
@@ -50,6 +58,7 @@
       </div>
       <div class="side-footer">
         <div class="account-email" id="accountEmail"></div>
+        <button class="btn primary install-app-btn hidden" type="button">⬇ Instalar aplicativo</button>
         <button class="btn" id="exportBtn">Exportar backup</button>
         <button class="btn ghost" id="importBtn">Importar backup</button>
         <button class="btn ghost" id="logoutBtn">Sair da conta</button>
@@ -106,7 +115,7 @@
   (()=>{
     "use strict";
     const SUPABASE_URL="https://oqdywlytsbcctrficcfm.supabase.co", SUPABASE_ANON_KEY="sb_publishable_SYLqoVg_7ScHcIJuGiTSrA_Mf8_jBOI";
-    let items=[], view="home", subjectId=null, noteId=null, supa=null, user=null, subscription=null, saveTimer=null, syncTimer=null, modalAction=null, toastTimer=null;
+    let items=[], view="home", subjectId=null, noteId=null, supa=null, user=null, subscription=null, saveTimer=null, syncTimer=null, modalAction=null, toastTimer=null, deferredInstallPrompt=null;
     const $=id=>document.getElementById(id);
 
     function id(){return crypto.randomUUID?crypto.randomUUID():"10000000-1000-4000-8000-100000000000".replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16))}
@@ -116,6 +125,27 @@
     function label(note){return note.title?.trim()||`Nota ${note.number||1}`}
     function date(ts){return new Intl.DateTimeFormat("pt-BR",{day:"2-digit",month:"short",year:"numeric"}).format(ts)}
     function notify(message){clearTimeout(toastTimer);$("toast").textContent=message;$("toast").classList.add("show");toastTimer=setTimeout(()=>$("toast").classList.remove("show"),2600)}
+    function appIsInstalled(){return window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true}
+    function isIos(){return /iphone|ipad|ipod/i.test(window.navigator.userAgent)}
+    function updateInstallButtons(){const show=!appIsInstalled()&&(!!deferredInstallPrompt||isIos());document.querySelectorAll(".install-app-btn").forEach(button=>button.classList.toggle("hidden",!show))}
+    async function installApp(){
+      if(deferredInstallPrompt){
+        await deferredInstallPrompt.prompt();
+        const choice=await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt=null;
+        updateInstallButtons();
+        if(choice.outcome==="accepted")notify("Aplicativo instalado.");
+        return;
+      }
+      if(isIos())window.alert("No Safari, toque em Compartilhar e depois em ‘Adicionar à Tela de Início’.");
+    }
+    function setupPwa(){
+      document.querySelectorAll(".install-app-btn").forEach(button=>button.addEventListener("click",installApp));
+      window.addEventListener("beforeinstallprompt",event=>{event.preventDefault();deferredInstallPrompt=event;updateInstallButtons()});
+      window.addEventListener("appinstalled",()=>{deferredInstallPrompt=null;updateInstallButtons();notify("Aplicativo instalado.")});
+      updateInstallButtons();
+      if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js",{scope:"./"}).catch(error=>console.warn("Service worker:",error)));
+    }
 
     function fromRow(row){return{id:row.id,type:row.type,subjectId:row.subject_id,title:row.title||"",content:row.content||"",number:row.note_number||0,favorite:!!row.favorite,trashed:!!row.trashed,createdAt:new Date(row.created_at).getTime(),updatedAt:new Date(row.updated_at).getTime()}}
     function toRow(item){return{id:item.id,user_id:user.id,type:item.type,subject_id:item.subjectId||null,title:item.title||"",content:item.content||"",note_number:item.number||0,favorite:!!item.favorite,trashed:!!item.trashed,created_at:new Date(item.createdAt||now()).toISOString(),updated_at:new Date(item.updatedAt||now()).toISOString()}}
@@ -172,6 +202,7 @@
     $("authForm").onsubmit=e=>{e.preventDefault();signIn($("authEmail").value.trim(),$("authPassword").value)};
     $("createAccountBtn").onclick=()=>signUp($("authEmail").value.trim(),$("authPassword").value);
     $("logoutBtn").onclick=async()=>{if(subscription)await supa.removeChannel(subscription);await supa.auth.signOut()};
+    setupPwa();
     boot().catch(error=>showAuth("Não foi possível iniciar: "+error.message));
   })();
   </script>
