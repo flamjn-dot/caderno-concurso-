@@ -7,11 +7,11 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Caderno">
+  <meta name="apple-mobile-web-app-title" content="Caderno de Direito">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
-  <title>Caderno de Concurso</title>
+  <title>CADERNO DE DIREITO</title>
   <style>
     :root{--bg:#07111f;--panel:#0b1829;--panel2:#102137;--line:#1c3552;--text:#e8f0fb;--muted:#8ea3bc;--blue:#4f9cf9;--blue2:#1e64b6;--danger:#ff6b78;--gold:#f4bf54;--shadow:0 16px 40px #0007;--radius:16px}
     *{box-sizing:border-box}html,body{height:100%;margin:0}body{font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);overflow:hidden}button,input,select{font:inherit}button{color:inherit}.hidden{display:none!important}
@@ -32,7 +32,7 @@
   <section class="auth-screen" id="authScreen">
     <div class="auth-card">
       <div class="auth-logo">C</div>
-      <h1>Caderno de Concurso</h1>
+      <h1>CADERNO DE DIREITO</h1>
       <p>Entre com seu e-mail para acessar as mesmas anotações no celular e no computador.</p>
       <form class="auth-form" id="authForm">
         <label>E-mail<input id="authEmail" type="email" autocomplete="email" required placeholder="seuemail@exemplo.com"></label>
@@ -47,7 +47,7 @@
   <div class="app hidden" id="app">
     <aside class="sidebar" id="sidebar">
       <button class="brand" id="homeBtn" style="border-top:0;border-left:0;border-right:0;background:transparent;color:inherit;text-align:left;cursor:pointer;width:100%">
-        <span class="brand-mark">C</span><span><strong>Caderno de Concurso</strong><small>Simples e independente</small></span>
+        <span class="brand-mark">C</span><span><strong>CADERNO DE DIREITO</strong><small>Simples e independente</small></span>
       </button>
       <div class="side-scroll">
         <button class="side-link active" data-view="home"><span>▦</span><span class="label">Todas as matérias</span></button>
@@ -59,7 +59,8 @@
       <div class="side-footer">
         <div class="account-email" id="accountEmail"></div>
         <button class="btn primary install-app-btn hidden" type="button">⬇ Instalar aplicativo</button>
-        <button class="btn" id="exportBtn">Exportar backup</button>
+        <button class="btn" id="exportTxtBtn">Backup para leitura (.TXT)</button>
+        <button class="btn" id="exportBtn">Backup completo (.JSON)</button>
         <button class="btn ghost" id="importBtn">Importar backup</button>
         <button class="btn ghost" id="logoutBtn">Sair da conta</button>
         <input class="hidden" id="importFile" type="file" accept="application/json,.json">
@@ -194,11 +195,12 @@
     function scheduleSave(){if(!getNote())return;clearTimeout(saveTimer);$("saveState").textContent="Salvando…";saveTimer=setTimeout(()=>flushNote().catch(()=>$("saveState").textContent="Erro ao salvar"),350)}
     function command(cmd,value=null){$("editor").focus();document.execCommand(cmd,false,value);scheduleSave()}
     function insertTable(){command("insertHTML","<table><tbody><tr><td>Texto</td><td>Texto</td></tr><tr><td>Texto</td><td>Texto</td></tr></tbody></table><p><br></p>")}
-    function exportBackup(){const data=JSON.stringify({app:"Caderno de Concurso Independente",version:1,exportedAt:new Date().toISOString(),items},null,2),url=URL.createObjectURL(new Blob([data],{type:"application/json"})),a=document.createElement("a");a.href=url;a.download=`backup-caderno-concurso-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);notify("Backup exportado.")}
+    function exportBackup(){const data=JSON.stringify({app:"Caderno de Direito",version:1,exportedAt:new Date().toISOString(),items},null,2),url=URL.createObjectURL(new Blob([data],{type:"application/json"})),a=document.createElement("a");a.href=url;a.download=`backup-caderno-direito-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);notify("Backup completo exportado.")}
+    function exportReadableBackup(){const clean=html=>{const el=document.createElement("div");el.innerHTML=html||"";el.querySelectorAll("br").forEach(x=>x.replaceWith("\n"));el.querySelectorAll("p,div,li,h1,h2,h3,h4,h5,h6,tr").forEach(x=>x.append("\n"));return(el.textContent||"").replace(/\u00a0/g," ").replace(/[ \t]+\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim()};const out=["CADERNO DE DIREITO",`Backup realizado em: ${new Date().toLocaleString("pt-BR")}`,"=".repeat(60),""];activeSubjects().forEach(subject=>{out.push(`MATÉRIA: ${subject.title||"Sem nome"}`,"=".repeat(60),"");const notes=items.filter(x=>x.type==="note"&&x.subjectId===subject.id&&!x.trashed).sort((a,b)=>a.createdAt-b.createdAt);if(!notes.length)out.push("(Nenhuma anotação nesta matéria)","");notes.forEach(note=>out.push(`NOTA: ${label(note)}`,"",clean(note.content)||"(Nota vazia)","","-".repeat(60),""));out.push("")});const data="\ufeff"+out.join("\r\n"),url=URL.createObjectURL(new Blob([data],{type:"text/plain;charset=utf-8"})),a=document.createElement("a");a.href=url;a.download=`caderno-de-direito-${new Date().toISOString().slice(0,10)}.txt`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);notify("Backup para leitura exportado.")}
     async function importBackup(file){if(!file)return;try{const data=JSON.parse(await file.text());if(!Array.isArray(data.items))throw new Error();showModal("Importar backup?","O conteúdo atual será substituído pelo conteúdo do arquivo.",null,"Importar",async()=>{await replaceAll(data.items.filter(x=>x&&x.id&&["subject","note"].includes(x.type)));closeModal();setView("home");notify("Backup importado.")},true)}catch{notify("Arquivo de backup inválido.")}finally{$("importFile").value=""}}
     function openMenu(){$("sidebar").classList.add("open");$("overlay").classList.add("open")}function closeMenu(){$("sidebar").classList.remove("open");$("overlay").classList.remove("open")}
 
-    $("homeBtn").onclick=()=>setView("home");$("sideAddSubject").onclick=createSubjectDialog;document.querySelectorAll("[data-view]").forEach(btn=>btn.onclick=()=>setView(btn.dataset.view));$("primaryBtn").onclick=()=>view==="subject"?createNote():createSubjectDialog();$("searchInput").oninput=()=>{view="search";subjectId=null;render()};$("menuBtn").onclick=openMenu;$("overlay").onclick=closeMenu;$("backBtn").onclick=()=>setView("subject",subjectId);$("noteTitle").oninput=scheduleSave;$("editor").oninput=scheduleSave;$("favoriteBtn").onclick=()=>{const n=getNote();if(n)toggleStar(n.id).then(()=>setEditor(items.find(x=>x.id===n.id)))};$("trashNoteBtn").onclick=()=>{const n=getNote();if(n)trashNote(n.id)};$("toolbar").querySelectorAll("[data-cmd]").forEach(btn=>btn.onmousedown=e=>{e.preventDefault();command(btn.dataset.cmd,btn.dataset.value||null)});$("tableBtn").onmousedown=e=>{e.preventDefault();insertTable()};$("exportBtn").onclick=exportBackup;$("importBtn").onclick=()=>$("importFile").click();$("importFile").onchange=e=>importBackup(e.target.files[0]);$("modalCancel").onclick=closeModal;$("modalConfirm").onclick=()=>{if(modalAction)modalAction($("modalInput").value)};$("modalBackdrop").onclick=e=>{if(e.target===$("modalBackdrop"))closeModal()};document.addEventListener("keydown",e=>{if(e.key==="Escape"){$("modalBackdrop").classList.contains("hidden")?closeMenu():closeModal()}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="s"&&view==="editor"){e.preventDefault();clearTimeout(saveTimer);flushNote().catch(()=>$("saveState").textContent="Erro ao salvar")}});document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"&&view==="editor"){clearTimeout(saveTimer);flushNote().catch(()=>{})}});
+    $("homeBtn").onclick=()=>setView("home");$("sideAddSubject").onclick=createSubjectDialog;document.querySelectorAll("[data-view]").forEach(btn=>btn.onclick=()=>setView(btn.dataset.view));$("primaryBtn").onclick=()=>view==="subject"?createNote():createSubjectDialog();$("searchInput").oninput=()=>{view="search";subjectId=null;render()};$("menuBtn").onclick=openMenu;$("overlay").onclick=closeMenu;$("backBtn").onclick=()=>setView("subject",subjectId);$("noteTitle").oninput=scheduleSave;$("editor").oninput=scheduleSave;$("favoriteBtn").onclick=()=>{const n=getNote();if(n)toggleStar(n.id).then(()=>setEditor(items.find(x=>x.id===n.id)))};$("trashNoteBtn").onclick=()=>{const n=getNote();if(n)trashNote(n.id)};$("toolbar").querySelectorAll("[data-cmd]").forEach(btn=>btn.onmousedown=e=>{e.preventDefault();command(btn.dataset.cmd,btn.dataset.value||null)});$("tableBtn").onmousedown=e=>{e.preventDefault();insertTable()};$("exportTxtBtn").onclick=exportReadableBackup;$("exportBtn").onclick=exportBackup;$("importBtn").onclick=()=>$("importFile").click();$("importFile").onchange=e=>importBackup(e.target.files[0]);$("modalCancel").onclick=closeModal;$("modalConfirm").onclick=()=>{if(modalAction)modalAction($("modalInput").value)};$("modalBackdrop").onclick=e=>{if(e.target===$("modalBackdrop"))closeModal()};document.addEventListener("keydown",e=>{if(e.key==="Escape"){$("modalBackdrop").classList.contains("hidden")?closeMenu():closeModal()}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="s"&&view==="editor"){e.preventDefault();clearTimeout(saveTimer);flushNote().catch(()=>$("saveState").textContent="Erro ao salvar")}});document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"&&view==="editor"){clearTimeout(saveTimer);flushNote().catch(()=>{})}});
     $("authForm").onsubmit=e=>{e.preventDefault();signIn($("authEmail").value.trim(),$("authPassword").value)};
     $("createAccountBtn").onclick=()=>signUp($("authEmail").value.trim(),$("authPassword").value);
     $("logoutBtn").onclick=async()=>{if(subscription)await supa.removeChannel(subscription);await supa.auth.signOut()};
