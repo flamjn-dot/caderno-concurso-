@@ -2,9 +2,11 @@ name: Atualizar Caderno de Direito
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
       - '.github/workflows/atualizar-caderno-direito.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -14,58 +16,60 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Atualizar aplicativo
-        shell: python
+      - name: Atualizar arquivos do aplicativo
+        shell: bash
         run: |
+          python - <<'PY'
           from pathlib import Path
-          import re
 
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
 
-          # Nome visual do aplicativo.
-          s = s.replace('Caderno de Concurso Independente', 'Caderno de Direito')
-          s = s.replace('Caderno de Concurso', 'Caderno de Direito')
-          s = s.replace('backup-caderno-concurso-', 'backup-caderno-direito-')
+          s = s.replace('<meta name="apple-mobile-web-app-title" content="Caderno">', '<meta name="apple-mobile-web-app-title" content="Caderno de Direito">')
+          s = s.replace('<title>Caderno de Concurso</title>', '<title>CADERNO DE DIREITO</title>')
+          s = s.replace('<h1>Caderno de Concurso</h1>', '<h1>CADERNO DE DIREITO</h1>')
+          s = s.replace('<strong>Caderno de Concurso</strong>', '<strong>CADERNO DE DIREITO</strong>')
 
-          old = re.compile(r'    function exportBackup\(\)\{.*?notify\("Backup exportado\."\)\}', re.S)
-          new = r'''    function exportBackup(){
-      const subjects=items.filter(x=>x.type==="subject"&&!x.trashed).sort((a,b)=>a.createdAt-b.createdAt);
-      const htmlToText=html=>{const el=document.createElement("div");el.innerHTML=html||"";el.querySelectorAll("br").forEach(br=>br.replaceWith("\\n"));el.querySelectorAll("p,div,li,h1,h2,h3,h4,h5,h6,tr").forEach(node=>node.append("\\n"));return(el.textContent||"").replace(/\\u00a0/g," ").replace(/[ \\t]+\\n/g,"\\n").replace(/\\n{3,}/g,"\\n\\n").trim()};
-      const line="=".repeat(60), subline="-".repeat(60), out=[];
-      out.push("CADERNO DE DIREITO",`Backup realizado em: ${new Date().toLocaleString("pt-BR")}`,line,"");
-      subjects.forEach(subject=>{
-        out.push(`MATÉRIA: ${subject.title||"Sem nome"}`,line,"");
-        const notes=items.filter(x=>x.type==="note"&&x.subjectId===subject.id&&!x.trashed).sort((a,b)=>a.createdAt-b.createdAt);
-        if(!notes.length)out.push("(Nenhuma anotação nesta matéria)","");
-        notes.forEach(note=>{out.push(`NOTA: ${label(note)}`,"");const body=htmlToText(note.content);out.push(body||"(Nota vazia)","",subline,"")});
-        out.push("");
-      });
-      const trashed=items.filter(x=>x.type==="note"&&x.trashed);
-      if(trashed.length){out.push("ANOTAÇÕES NA LIXEIRA",line,"");trashed.forEach(note=>{const subject=items.find(x=>x.id===note.subjectId);out.push(`MATÉRIA: ${subject?.title||"Sem matéria"}`,`NOTA: ${label(note)}`,"",htmlToText(note.content)||"(Nota vazia)","",subline,"")})}
-      const data="\\ufeff"+out.join("\\r\\n"),url=URL.createObjectURL(new Blob([data],{type:"text/plain;charset=utf-8"})),a=document.createElement("a");a.href=url;a.download=`backup-caderno-direito-${new Date().toISOString().slice(0,10)}.txt`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);notify("Backup em texto exportado.")
-    }'''
-          s2, n = old.subn(new, s, count=1)
-          if n != 1:
-              raise SystemExit(f'Função de backup não encontrada ou ambígua: {n}')
-          p.write_text(s2, encoding='utf-8')
+          old_buttons = '''        <button class="btn" id="exportBtn">Exportar backup</button>\n        <button class="btn ghost" id="importBtn">Importar backup</button>'''
+          new_buttons = '''        <button class="btn" id="exportTxtBtn">Backup para leitura (.TXT)</button>\n        <button class="btn" id="exportBtn">Backup completo (.JSON)</button>\n        <button class="btn ghost" id="importBtn">Importar backup</button>'''
+          if old_buttons in s:
+              s = s.replace(old_buttons, new_buttons, 1)
 
-          # Atualiza nome exibido quando instalado como PWA.
-          mp=Path('manifest.webmanifest')
-          m=mp.read_text(encoding='utf-8')
-          m=m.replace('Caderno de Concurso Independente','Caderno de Direito').replace('Caderno de Concurso','Caderno de Direito')
-          mp.write_text(m,encoding='utf-8')
+          old_export = '''    function exportBackup(){const data=JSON.stringify({app:"Caderno de Concurso Independente",version:1,exportedAt:new Date().toISOString(),items},null,2),url=URL.createObjectURL(new Blob([data],{type:"application/json"})),a=document.createElement("a");a.href=url;a.download=`backup-caderno-concurso-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);notify("Backup exportado.")}'''
+          new_export = '''    function exportBackup(){const data=JSON.stringify({app:"Caderno de Direito",version:1,exportedAt:new Date().toISOString(),items},null,2),url=URL.createObjectURL(new Blob([data],{type:"application/json"})),a=document.createElement("a");a.href=url;a.download=`backup-caderno-direito-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);notify("Backup completo exportado.")}\n    function exportReadableBackup(){\n      const clean=html=>{const el=document.createElement("div");el.innerHTML=html||"";el.querySelectorAll("br").forEach(x=>x.replaceWith("\\n"));el.querySelectorAll("p,div,li,h1,h2,h3,h4,h5,h6,tr").forEach(x=>x.append("\\n"));return(el.textContent||"").replace(/\\u00a0/g," ").replace(/[ \\t]+\\n/g,"\\n").replace(/\\n{3,}/g,"\\n\\n").trim()};\n      const out=["CADERNO DE DIREITO",`Backup realizado em: ${new Date().toLocaleString("pt-BR")}`,"=".repeat(60),""];\n      activeSubjects().forEach(subject=>{out.push(`MATÉRIA: ${subject.title||"Sem nome"}`,"=".repeat(60),"");const notes=items.filter(x=>x.type==="note"&&x.subjectId===subject.id&&!x.trashed).sort((a,b)=>a.createdAt-b.createdAt);if(!notes.length)out.push("(Nenhuma anotação nesta matéria)","");notes.forEach(note=>out.push(`NOTA: ${label(note)}`,"",clean(note.content)||"(Nota vazia)","","-".repeat(60),""));out.push("")});\n      const data="\\ufeff"+out.join("\\r\\n"),url=URL.createObjectURL(new Blob([data],{type:"text/plain;charset=utf-8"})),a=document.createElement("a");a.href=url;a.download=`caderno-de-direito-${new Date().toISOString().slice(0,10)}.txt`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);notify("Backup para leitura exportado.")\n    }'''
+          if old_export not in s:
+              raise SystemExit('Função original de exportação não encontrada')
+          s = s.replace(old_export, new_export, 1)
 
-          # Força o PWA a buscar os arquivos novos sem apagar dados do usuário.
-          sw=Path('sw.js')
-          w=sw.read_text(encoding='utf-8')
-          w=re.sub(r'(CACHE[^=]*=\s*["\'][^"\']*?)(["\'])',lambda x:x.group(1)+'-direito-20260916'+x.group(2),w,count=1)
-          sw.write_text(w,encoding='utf-8')
-      - name: Publicar atualização
+          old_bind = '$("exportBtn").onclick=exportBackup;$("importBtn").onclick=()=>$("importFile").click();'
+          new_bind = '$("exportTxtBtn").onclick=exportReadableBackup;$("exportBtn").onclick=exportBackup;$("importBtn").onclick=()=>$("importFile").click();'
+          if old_bind not in s:
+              raise SystemExit('Ligação dos botões de backup não encontrada')
+          s = s.replace(old_bind, new_bind, 1)
+          p.write_text(s, encoding='utf-8')
+
+          mp = Path('manifest.webmanifest')
+          m = mp.read_text(encoding='utf-8')
+          m = m.replace('"name": "Caderno de Concurso"', '"name": "CADERNO DE DIREITO"')
+          m = m.replace('"short_name": "Caderno"', '"short_name": "Direito"')
+          mp.write_text(m, encoding='utf-8')
+
+          sw = Path('sw.js')
+          w = sw.read_text(encoding='utf-8')
+          w = w.replace('caderno-concurso-shell-v1', 'caderno-direito-shell-v3')
+          w = w.replace('key.startsWith("caderno-concurso-shell-")', 'key.startsWith("caderno-")')
+          sw.write_text(w, encoding='utf-8')
+          PY
+
+      - name: Salvar atualização
+        shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html manifest.webmanifest sw.js
-          git diff --cached --quiet && exit 0
-          git commit -m "Atualiza Caderno de Direito e backup TXT [skip ci]"
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração necessária."
+            exit 0
+          fi
+          git commit -m "Publica CADERNO DE DIREITO e novos backups"
           git push
