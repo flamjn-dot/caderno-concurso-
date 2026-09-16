@@ -19,8 +19,8 @@ jobs:
           from pathlib import Path
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
-          s=s.replace('Caderno de Concurso','CADERNO DE DIREITO')
           s=s.replace('Caderno de Concurso Independente','Caderno de Direito')
+          s=s.replace('Caderno de Concurso','CADERNO DE DIREITO')
           s=s.replace('backup-caderno-concurso-','backup-caderno-direito-')
           old='        <button class="btn" id="exportBtn">Exportar backup</button>\n        <button class="btn ghost" id="importBtn">Importar backup</button>'
           new='        <button class="btn" id="exportTxtBtn">Backup para leitura (.TXT)</button>\n        <button class="btn" id="exportBtn">Backup completo (.JSON)</button>\n        <button class="btn ghost" id="importBtn">Importar backup</button>'
