@@ -21,43 +21,28 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-
-          p = Path('index.html')
-          s = p.read_text(encoding='utf-8')
-
-          s = s.replace('<meta name="apple-mobile-web-app-title" content="Caderno">', '<meta name="apple-mobile-web-app-title" content="Caderno de Direito">')
-          s = s.replace('<title>Caderno de Concurso</title>', '<title>CADERNO DE DIREITO</title>')
-          s = s.replace('<h1>Caderno de Concurso</h1>', '<h1>CADERNO DE DIREITO</h1>')
-          s = s.replace('<strong>Caderno de Concurso</strong>', '<strong>CADERNO DE DIREITO</strong>')
-
-          old_buttons = '''        <button class="btn" id="exportBtn">Exportar backup</button>\n        <button class="btn ghost" id="importBtn">Importar backup</button>'''
-          new_buttons = '''        <button class="btn" id="exportTxtBtn">Backup para leitura (.TXT)</button>\n        <button class="btn" id="exportBtn">Backup completo (.JSON)</button>\n        <button class="btn ghost" id="importBtn">Importar backup</button>'''
-          if old_buttons in s:
-              s = s.replace(old_buttons, new_buttons, 1)
-
-          old_export = '''    function exportBackup(){const data=JSON.stringify({app:"Caderno de Concurso Independente",version:1,exportedAt:new Date().toISOString(),items},null,2),url=URL.createObjectURL(new Blob([data],{type:"application/json"})),a=document.createElement("a");a.href=url;a.download=`backup-caderno-concurso-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);notify("Backup exportado.")}'''
-          new_export = '''    function exportBackup(){const data=JSON.stringify({app:"Caderno de Direito",version:1,exportedAt:new Date().toISOString(),items},null,2),url=URL.createObjectURL(new Blob([data],{type:"application/json"})),a=document.createElement("a");a.href=url;a.download=`backup-caderno-direito-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);notify("Backup completo exportado.")}\n    function exportReadableBackup(){const clean=html=>{const el=document.createElement("div");el.innerHTML=html||"";el.querySelectorAll("br").forEach(x=>x.replaceWith("\\n"));el.querySelectorAll("p,div,li,h1,h2,h3,h4,h5,h6,tr").forEach(x=>x.append("\\n"));return(el.textContent||"").replace(/\\u00a0/g," ").replace(/[ \\t]+\\n/g,"\\n").replace(/\\n{3,}/g,"\\n\\n").trim()};const out=["CADERNO DE DIREITO",`Backup realizado em: ${new Date().toLocaleString("pt-BR")}`,"=".repeat(60),""];activeSubjects().forEach(subject=>{out.push(`MATÉRIA: ${subject.title||"Sem nome"}`,"=".repeat(60),"");const notes=items.filter(x=>x.type==="note"&&x.subjectId===subject.id&&!x.trashed).sort((a,b)=>a.createdAt-b.createdAt);if(!notes.length)out.push("(Nenhuma anotação nesta matéria)","");notes.forEach(note=>out.push(`NOTA: ${label(note)}`,"",clean(note.content)||"(Nota vazia)","","-".repeat(60),""));out.push("")});const data="\\ufeff"+out.join("\\r\\n"),url=URL.createObjectURL(new Blob([data],{type:"text/plain;charset=utf-8"})),a=document.createElement("a");a.href=url;a.download=`caderno-de-direito-${new Date().toISOString().slice(0,10)}.txt`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);notify("Backup para leitura exportado.")}'''
-          if old_export not in s:
-              raise SystemExit('Função original de exportação não encontrada')
-          s = s.replace(old_export, new_export, 1)
-
-          old_bind = '$("exportBtn").onclick=exportBackup;$("importBtn").onclick=()=>$("importFile").click();'
-          new_bind = '$("exportTxtBtn").onclick=exportReadableBackup;$("exportBtn").onclick=exportBackup;$("importBtn").onclick=()=>$("importFile").click();'
-          if old_bind not in s:
-              raise SystemExit('Ligação dos botões de backup não encontrada')
-          s = s.replace(old_bind, new_bind, 1)
-          p.write_text(s, encoding='utf-8')
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('<meta name="apple-mobile-web-app-title" content="Caderno">','<meta name="apple-mobile-web-app-title" content="Caderno de Direito">')
+          s=s.replace('<title>Caderno de Concurso</title>','<title>CADERNO DE DIREITO</title>')
+          s=s.replace('<h1>Caderno de Concurso</h1>','<h1>CADERNO DE DIREITO</h1>')
+          s=s.replace('<strong>Caderno de Concurso</strong>','<strong>CADERNO DE DIREITO</strong>')
+          s=s.replace('        <button class="btn" id="exportBtn">Exportar backup</button>\n        <button class="btn ghost" id="importBtn">Importar backup</button>','        <button class="btn" id="exportTxtBtn">Backup para leitura (.TXT)</button>\n        <button class="btn" id="exportBtn">Backup completo (.JSON)</button>\n        <button class="btn ghost" id="importBtn">Importar backup</button>',1)
+          old='    function exportBackup(){const data=JSON.stringify({app:"Caderno de Concurso Independente",version:1,exportedAt:new Date().toISOString(),items},null,2),url=URL.createObjectURL(new Blob([data],{type:"application/json"})),a=document.createElement("a");a.href=url;a.download=`backup-caderno-concurso-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);notify("Backup exportado.")}'
+          new='    function exportBackup(){const data=JSON.stringify({app:"Caderno de Direito",version:1,exportedAt:new Date().toISOString(),items},null,2),url=URL.createObjectURL(new Blob([data],{type:"application/json"})),a=document.createElement("a");a.href=url;a.download=`backup-caderno-direito-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);notify("Backup completo exportado.")}\n    function exportReadableBackup(){const clean=html=>{const el=document.createElement("div");el.innerHTML=html||"";el.querySelectorAll("br").forEach(x=>x.replaceWith("\\n"));el.querySelectorAll("p,div,li,h1,h2,h3,h4,h5,h6,tr").forEach(x=>x.append("\\n"));return(el.textContent||"").replace(/\\u00a0/g," ").replace(/[ \\t]+\\n/g,"\\n").replace(/\\n{3,}/g,"\\n\\n").trim()};const out=["CADERNO DE DIREITO",`Backup realizado em: ${new Date().toLocaleString("pt-BR")}`,"=".repeat(60),""];activeSubjects().forEach(subject=>{out.push(`MATÉRIA: ${subject.title||"Sem nome"}`,"=".repeat(60),"");const notes=items.filter(x=>x.type==="note"&&x.subjectId===subject.id&&!x.trashed).sort((a,b)=>a.createdAt-b.createdAt);if(!notes.length)out.push("(Nenhuma anotação nesta matéria)","");notes.forEach(note=>out.push(`NOTA: ${label(note)}`,"",clean(note.content)||"(Nota vazia)","","-".repeat(60),""));out.push("")});const data="\\ufeff"+out.join("\\r\\n"),url=URL.createObjectURL(new Blob([data],{type:"text/plain;charset=utf-8"})),a=document.createElement("a");a.href=url;a.download=`caderno-de-direito-${new Date().toISOString().slice(0,10)}.txt`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);notify("Backup para leitura exportado.")}'
+          if old not in s: raise SystemExit('Função original não encontrada')
+          s=s.replace(old,new,1)
+          bind='$("exportBtn").onclick=exportBackup;$("importBtn").onclick=()=>$("importFile").click();'
+          if bind not in s: raise SystemExit('Eventos de backup não encontrados')
+          s=s.replace(bind,'$("exportTxtBtn").onclick=exportReadableBackup;$("exportBtn").onclick=exportBackup;$("importBtn").onclick=()=>$("importFile").click();',1)
+          p.write_text(s,encoding='utf-8')
           PY
-
       - name: Salvar atualização
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html
-          if git diff --cached --quiet; then
-            echo "Nenhuma alteração necessária."
-            exit 0
-          fi
+          git diff --cached --quiet && exit 0
           git commit -m "Publica CADERNO DE DIREITO e novos backups"
           git push
